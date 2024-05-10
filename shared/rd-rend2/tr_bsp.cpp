@@ -444,7 +444,7 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 
 						color[3] = 1.0f;
 
-						R_ColorShiftLightingFloats(color, color, 1.0f / M_PI, false);
+						R_ColorShiftLightingFloats(color, color, 1.0f, false);
 
 						ColorToRGBA16F(color, (uint16_t *)(&image[j * 8]));
 					}
@@ -914,9 +914,9 @@ static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *ver
 			if (hdrVertColors)
 			{
 				float *hdrColor = hdrVertColors + (ds->firstVert + i) * 3;
-				color[0] = hdrColor[0] / M_PI;
-				color[1] = hdrColor[1] / M_PI;
-				color[2] = hdrColor[2] / M_PI;
+				color[0] = hdrColor[0];
+				color[1] = hdrColor[1];
+				color[2] = hdrColor[2];
 				scale = 1.0f;
 			}
 			else
@@ -1063,9 +1063,9 @@ static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *ve
 			if (hdrVertColors)
 			{
 				float *hdrColor = hdrVertColors + (ds->firstVert + i)*3;
-				color[0] = hdrColor[0] / M_PI;
-				color[1] = hdrColor[1] / M_PI;
-				color[2] = hdrColor[2] / M_PI;
+				color[0] = hdrColor[0];
+				color[1] = hdrColor[1];
+				color[2] = hdrColor[2];
 				scale = 1.0f;
 			}
 			else
@@ -1193,9 +1193,9 @@ static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *
 			if (hdrVertColors)
 			{
 				float *hdrColor = hdrVertColors + ((ds->firstVert + i) * 3);
-				color[0] = hdrColor[0] / M_PI;
-				color[1] = hdrColor[1] / M_PI;
-				color[2] = hdrColor[2] / M_PI;
+				color[0] = hdrColor[0];
+				color[1] = hdrColor[1];
+				color[2] = hdrColor[2];
 				scale = 1.0f;
 			}
 			else
@@ -2888,12 +2888,12 @@ void R_LoadLightGrid( world_t *worldData, lump_t *l ) {
 
 			for (i = 0; i < worldData->lightGridBounds[0] * worldData->lightGridBounds[1] * worldData->lightGridBounds[2]; i++)
 			{
-				worldData->hdrLightGrid[i * 6    ] = hdrLightGrid[i * 6    ] / M_PI;
-				worldData->hdrLightGrid[i * 6 + 1] = hdrLightGrid[i * 6 + 1] / M_PI;
-				worldData->hdrLightGrid[i * 6 + 2] = hdrLightGrid[i * 6 + 2] / M_PI;
-				worldData->hdrLightGrid[i * 6 + 3] = hdrLightGrid[i * 6 + 3] / M_PI;
-				worldData->hdrLightGrid[i * 6 + 4] = hdrLightGrid[i * 6 + 4] / M_PI;
-				worldData->hdrLightGrid[i * 6 + 5] = hdrLightGrid[i * 6 + 5] / M_PI;
+				worldData->hdrLightGrid[i * 6    ] = hdrLightGrid[i * 6    ];
+				worldData->hdrLightGrid[i * 6 + 1] = hdrLightGrid[i * 6 + 1];
+				worldData->hdrLightGrid[i * 6 + 2] = hdrLightGrid[i * 6 + 2];
+				worldData->hdrLightGrid[i * 6 + 3] = hdrLightGrid[i * 6 + 3];
+				worldData->hdrLightGrid[i * 6 + 4] = hdrLightGrid[i * 6 + 4];
+				worldData->hdrLightGrid[i * 6 + 5] = hdrLightGrid[i * 6 + 5];
 			}
 		}
 
@@ -3303,12 +3303,6 @@ static void R_RenderAllCubemaps()
 	R_IssuePendingRenderCommands();
 	R_InitNextFrame();
 
-	GLenum cubemapFormat = GL_RGBA8;
-	if (r_hdr->integer)
-	{
-		cubemapFormat = GL_RGBA16F;
-	}
-
 	for (int k = 0; k <= r_cubeMappingBounces->integer; k++)
 	{
 		bool bounce = k != 0;
@@ -3332,7 +3326,7 @@ void R_LoadWeatherZones(world_t *worldData, lump_t *brushesLump, lump_t *sidesLu
 {
 	dbrush_t 	*brushes;
 	dbrushside_t	*sides;
-	int			brushesCount, sidesCount;
+	int			brushesCount;
 
 	brushes = (dbrush_t *)(fileBase + brushesLump->fileofs);
 	if (brushesLump->filelen % sizeof(*brushes)) {
@@ -3344,7 +3338,6 @@ void R_LoadWeatherZones(world_t *worldData, lump_t *brushesLump, lump_t *sidesLu
 	if (sidesLump->filelen % sizeof(*sides)) {
 		ri.Error(ERR_DROP, "LoadMap: funny lump size in %s", worldData->name);
 	}
-	sidesCount = sidesLump->filelen / sizeof(*sides);
 
 	tr.weatherSystem->weatherBrushType = WEATHER_BRUSHES_NONE;
 
@@ -4024,7 +4017,7 @@ static void R_GenerateSurfaceSprites( const world_t *world, int worldIndex )
 	for (int i = 0; i < tr.numShaders; i++)
 	{
 		const shader_t *shader = tr.shaders[i];
-		if (shader->spriteUbo != -1)
+		if (shader->spriteUbo != 0)
 			continue;
 
 		numSpriteStages += shader->numSurfaceSpriteStages;
@@ -4401,7 +4394,6 @@ void RE_LoadWorldMap( const char *name ) {
 	tr.toneMinAvgMaxLevel[0] = -8.0f;
 	tr.toneMinAvgMaxLevel[1] = -2.0f;
 	tr.toneMinAvgMaxLevel[2] = 0.0f;
-	tr.explicitToneMap = false;
 
 	world_t *world = R_LoadBSP(name);
 	if (world == nullptr)
@@ -4410,13 +4402,6 @@ void RE_LoadWorldMap( const char *name ) {
 		// loaded version
 		tr.world = nullptr;
 		return;
-	}
-
-	if (r_hdr->integer && tr.hdrLighting && !tr.explicitToneMap)
-	{
-		tr.toneMinAvgMaxLevel[0] = -8.0f;
-		tr.toneMinAvgMaxLevel[1] = 0.0f;
-		tr.toneMinAvgMaxLevel[2] = 2.0f;
 	}
 
 	tr.worldMapLoaded = qtrue;
