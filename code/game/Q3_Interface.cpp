@@ -3671,7 +3671,18 @@ static void Q3_SetScale(int entID, float float_data)
 		return;
 	}
 
-	self->s.scale = float_data;
+	//self->s.modelScale = float_data;
+	else
+	{
+		if ( float_data < 0 )
+		{
+			self->modelScale = float_data;
+		}
+		else
+		{
+			self->modelScale = float_data*100.0f;
+		}
+	}
 }
 
 
