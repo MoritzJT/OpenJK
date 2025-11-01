@@ -51,6 +51,14 @@ if(BuildSPEngine OR BuildJK2SPEngine)
 		"${GSLIncludeDirectory}")
 
 	#    Dependencies
+
+	if (NOT WIN32)
+		# OpenGL
+		find_package(OpenGL REQUIRED)
+		set(SPEngineIncludeDirectories ${SPEngineIncludeDirectories} ${OPENGL_INCLUDE_DIR})
+		set(SPEngineLibraries ${SPEngineLibraries} ${OPENGL_LIBRARIES})
+	endif()
+
 	# OpenAL (is optionally included for Windows)
 	if(MSVC AND NOT WIN64)
 		if(UseInternalOpenAL)
@@ -180,7 +188,7 @@ if(BuildSPEngine OR BuildJK2SPEngine)
 		"${SPDir}/qcommon/z_memman_pc.cpp"
 		"${SPDir}/qcommon/qfiles.h"
 		"${SPDir}/qcommon/qcommon.h"
-		"${SPDir}/qcommon/stv_version.h"
+		"${SPDir}/qcommon/game_version.h"
 		"${SPDir}/qcommon/timing.h"
 		"${SPDir}/qcommon/MiniHeap.h"
 

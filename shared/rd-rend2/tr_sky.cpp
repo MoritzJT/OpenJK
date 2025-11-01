@@ -453,6 +453,8 @@ static void DrawSkySide( struct image_s *image, const int mins[2], const int max
 		UNIFORM_DIFFUSETEXOFFTURB, 0.0f, 0.0f, 0.0f, 0.0f);
 	uniformDataWriter.SetUniformVec4(
 		UNIFORM_ENABLETEXTURES, 0.0f, 0.0f, 0.0f, 0.0f);
+	uniformDataWriter.SetUniformInt(
+		UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
 
 	samplerBindingsWriter.AddStaticImage(image, TB_DIFFUSEMAP);
 
@@ -464,6 +466,7 @@ static void DrawSkySide( struct image_s *image, const int mins[2], const int max
 	};
 
 	DrawItem item = {};
+	item.renderState.stateBits = tr.portalRenderedThisFrame ? 0 : GLS_DEPTHTEST_DISABLE;
 	item.renderState.cullType = CT_TWO_SIDED;
 	item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, tess.shader);
 	item.program = sp;
@@ -481,7 +484,7 @@ static void DrawSkySide( struct image_s *image, const int mins[2], const int max
 	RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, &tess);
 	item.draw.params.indexed.numIndices -= tess.firstIndex;
 
-	uint32_t key = RB_CreateSortKey(item, 0, SS_ENVIRONMENT);
+	uint32_t key = RB_CreateSkySortKey(item, 0, backEnd.skyNumber, SS_ENVIRONMENT);
 	RB_AddDrawItem(backEndData->currentPass, key, item);
 
 	RB_CommitInternalBufferData();
@@ -796,37 +799,25 @@ void RB_DrawSun( float scale, shader_t *shader ) {
 		return;
 	}
 
-	// FIXME: this could be a lot cleaner
-	matrix_t translation, modelview;
-
-	Matrix16Translation( backEnd.viewParms.ori.origin, translation );
-	Matrix16Multiply( backEnd.viewParms.world.modelViewMatrix, translation, modelview );
-	GL_SetModelviewMatrix( modelview );
+	backEnd.currentEntity = &tr.worldEntity;
 
 	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
 	size = dist * scale;
 
 	VectorScale( tr.sunDirection, dist, origin );
+	VectorAdd( origin, backEnd.viewParms.ori.origin, origin );
 	PerpendicularVector( vec1, tr.sunDirection );
 	CrossProduct( tr.sunDirection, vec1, vec2 );
 
 	VectorScale( vec1, size, vec1 );
 	VectorScale( vec2, size, vec2 );
 
-	// farthest depth range
-	GL_DepthRange(1.0f, 1.0f);
-
 	RB_BeginSurface( shader, 0, 0 );
 
 	RB_AddQuadStamp(origin, vec1, vec2, colorWhite);
 
 	RB_EndSurface();
-
-	// back to normal depth range
-	GL_DepthRange(0.0f, 1.0f);
 }
-
-
 
 
 /*
@@ -866,9 +857,5 @@ void RB_StageIteratorSky( void ) {
 
 	// note that sky was drawn so we will draw a sun later
 	backEnd.skyRenderedThisView = qtrue;
+	backEnd.skyNumber++;
 }
-
-
-
-
-

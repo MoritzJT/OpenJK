@@ -1,8 +1,6 @@
 /*
 ===========================================================================
-Copyright (C) 2000 - 2013, Raven Software, Inc.
-Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015, OpenJK contributors
+Copyright (C) 2016, OpenJK contributors
 
 This file is part of the OpenJK source code.
 
@@ -19,17 +17,21 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
+#include "tr_local.h"
 
-// Current version of the single player game
-#include "../win32/AutoVersion.h"
-
-#ifdef _DEBUG
-	#define	Q3_VERSION		"(debug)OpenJK: v" VERSION_STRING_DOTTED
-#elif defined FINAL_BUILD
-	#define	Q3_VERSION		"OpenJK: v" VERSION_STRING_DOTTED
-#else
-	#define	Q3_VERSION		"(internal)OpenJK: v" VERSION_STRING_DOTTED
-#endif
-// end
-
-
+void R_PushDebugGroup(annotationLayer_t layer, const char* name)
+{
+	static GLuint currentLayer = (GLuint)AL_NONE;
+	assert(layer <= currentLayer + 1);
+	while (layer <= currentLayer)
+	{
+		if (currentLayer == AL_NONE)
+			break;
+		qglPopDebugGroupKHR();
+		currentLayer--;
+	}
+	if (layer == AL_NONE)
+		return;
+	currentLayer = (GLuint)layer;
+	qglPushDebugGroupKHR(GL_DEBUG_SOURCE_APPLICATION, currentLayer, -1, name);
+}
